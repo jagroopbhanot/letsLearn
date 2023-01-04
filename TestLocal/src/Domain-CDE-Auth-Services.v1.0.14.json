@@ -1,0 +1,1839 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Domain-CDE-Auth-Services",
+    "version": "1.0.14",
+    "contact": {
+      "name": "Stormtrooper",
+      "email": "stormtrooper@cuscal.com.au"
+    },
+    "description": "Domain APIs to will need to interface with IAM provider partner services. In order to enforce CDR API access it will also need to integrate with Consent partner APIs. \n> Pirean API Contracts [SOP - IAM APIs](https://cuscalwiki.cuscalad.com/display/OB/SOP+-+IAM+APIs)\n[Readme](docs/Core/Consent/Readme-Auth-Domain.md)\n\n### Changelog\n\nChange Date | Version | Description | Change Details\n---------|----------|---------|---------\n 15-Feb-2021 | 1.0.0 | Initial Draft | -\n 28-Mar-2021 | 1.0.1 | Updated GET /sessions/{tenantId} | > Updated the response model <br> > added x-trace-id mandatory header <br> > Updated constact to Stormtrooper Team\n 08-Jun-2021 | 1.0.2 | Added DCRS & Consent Grant endpoints | > Added POST /recipients/{recipientBrandId}/clients to onboard Data Recipient for DCRS <br> > Added POST /auth/{tenantId}/consent/token for Consent Grant flow <br> > Added POST /auth/{tenantId}/consent/grant to return y_return_code to A:1\n 22-Jun-2021 | 1.0.3 | Added revoke crd_arrangement_id endpoint & fixed path | > Added POST /{tenantId}/arrangements/{arrangementId}/revoke to revoke cdr_arrangement_id <br> > Removed extra auth from path of GET /{tenantId}/metrics, POST /{tenantId}/consent/token & POST /oauth/enforce/access <br> \n  30-Jun-2021 | 1.0.4 | Updated POST /oauth/enforce/access & fixed errors | > Updated POST /oauth/enforce/access response model <br> > Removed clientId from POST /recipients/{recipientBrandId}/clients request body <br> > Replaced customerReference & customerReferencePpid with onlineBankingDhPpid & onlineBankingDhDrPpid respectively in POST /{tenantId}/consent/grant request model <br> > Removed request body from POST /{tenantId}/arrangements/{arrangementId}/revoke <br> > added tenantId in path param of POST /{tenantId}/recipients/{recipientBrandId}/clients <br> > added GET /{tenantId}/customers/{onlineBankingDhPpId} to be consumed by Pirean to service CDR GET /userinfo endpoint\n  21-Jul-2021 | 1.0.5 | Updated POST /oauth/enforce/access | > Renamed x-cuscal-x5t to x-cert-x5t and made it optional <br> > Added new enum \"SPA\" for purpose in request body > Replaced enums CDR_READ & B2B_READ with CDR & B2B for purpose in request body <br> > softwareSystemType & softwareProductId were made optional in the response body\n   27-Jul-2021 | 1.0.6 | Added 3 endpoints : POST /revoke, POST /signature & POST /otp  | > POST /{tenantId}/consent/token/revoke endpoint will be used to initiate revoke authorization token to Pirean  <br> > POST /token/signature endpoint will be used to verify JWT signature and obtain payload\n 09-Aug-2021 | 1.0.7 | Added new endpoints and updated exsisting endpoints to comply with design changes  | > Added POST /{tenantId}/consent/customer/verify <br> > Added POST /{tenantId}/consent/token/elevate <br> > Updated POST /{tenantId}/consent/token request and response model <br> > Updated POST /{tenantId}/consent/grant request model to include userInfo\n 18-Aug-2021 | 1.0.8 | Added new endpoints to delete endpoint | > Added DELETE /sessions/caches/{key}\n 22-Aug-2021 | 1.0.9 | Enhanced to support ID Permanence | > Renamed following attributes in POST /{tenantId}/oauth/enforce/access response <br> &nbsp &nbsp &nbsp &nbsp >> customerReferencePPID -> customerReferenceDh <br> &nbsp &nbsp &nbsp &nbsp >> customerReferenceDRPPID -> customerReferenceDhDr <br> &nbsp &nbsp &nbsp &nbsp >> onBehalfOfReferencePPID -> onBehalfOfReferenceDH <br> &nbsp &nbsp &nbsp &nbsp >> onBehalfOfReferencePPID -> onBehalfOfReferenceDh <br> &nbsp &nbsp &nbsp &nbsp >> accountPPID -> accountDhDr  Updated POST /{tenantId}/oauth/enforce/access <br> > Added following attributes in POST /{tenantId}/oauth/enforce/access response <br> &nbsp &nbsp &nbsp &nbsp >> keySetDH <br> &nbsp &nbsp &nbsp &nbsp >> keySetDhDr <br> &nbsp &nbsp &nbsp &nbsp >> recipientBrandId <br> > Renamed GET /{tenantId}/customers/{onlineBankingDhPpId} to GET /{tenantId}/customers/{customerReferenceDh} <br> > Renamed following attributes in POST /{tenantId}/consent/grant request <br> &nbsp &nbsp &nbsp &nbsp >> onlineBankingDhPpid -> customerReferenceDh <br> &nbsp &nbsp &nbsp &nbsp >> onlineBankingDhDrPpid -> customerReferenceDhDr <br> > As per the design update, removed scope from POST /{tenantId}/consent/token, POST /{tenantId}/consent/customer/verify & POST /{tenantId}/consent/token/elevate <br> Updated requst body of POST /{tenantId}/consent/grant to include shareUserInfo and make userInfo optional\n 1-Sep-2021 | 1.0.10 | Fixed error | > Updated response model of POST /enforce/access\n 24-Sep-2021 | 1.0.11 | Consent Revoke endpoints added & Updates to enforce access | > Added POST /{tenantId}/clients/revoke to inactivate consents on Pirean for removed Products <br> > Added POST /{tenantId}/grants/revoke to inactivate consents on Pirean when a consent is revoked by Data Holder consumer dashboard <br> > Updated POST /{tenantId}/oauth/enforce/access response with account status & scope <br> > Fixed errors GET /{tenantId}/metrics response model <br> Updated POST /{tenantId}/oauth/enforce/access to respond with customerReferenceDH (optional) for purpose = SPA \n 26-Nov-2021 | 1.0.12 | Updated GET /sessions/{tenantId} response to include security headers | > Added and empty headers object GET /sessions/{tenantId} response to include security headers. This will contain security header if any required by the client <br> Had to maintain the incorrect response model because fixing it would require changes on down stream APIs\n 28-Nov-2021 | 1.0.13 | Renamed GET /{tenantId}/metrics | > Renamed GET /{tenantId}/metrics to /{tenantId}/metrics/sessions <br> \n  28-Mar-2022 | 1.0.14 | Added GET /{tenantId}/metrics/infosec | > Added GET /{tenantId}/metrics/infosec for Pirean Infosec API stats"
+  },
+  "schemes": [
+    "http"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "paths": {
+    "/{tenantId}/oauth/enforce/access": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "summary": "Enforce Access",
+        "operationId": "post-enforce-access",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseDomainAuthEnforceAccess_v1"
+            },
+            "examples": {
+              "CDR": {
+                "value": {
+                  "data": {
+                    "active": "true",
+                    "sourceSystemType": "string",
+                    "softwareProductId": "string",
+                    "recipientBrandId": "string",
+                    "scope": "string",
+                    "consentDetail": {
+                      "isValid": true,
+                      "customerReference": "string",
+                      "customerReferenceDh": "string",
+                      "customerReferenceDhDr": "string",
+                      "onBehalfOfReference": "string",
+                      "onBehalfOfReferenceDh": "string",
+                      "keySetDh": "string",
+                      "keySetDhDr": "string",
+                      "accounts": [
+                        {
+                          "accountNumber": "string",
+                          "accountDhDr": "string",
+                          "authValue": "string",
+                          "accountState": "string"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "B2B": {
+                "value": {
+                  "data": {
+                    "active": "true",
+                    "sourceSystemType": "string",
+                    "softwareProductId": "string",
+                    "recipientBrandId": null,
+                    "scope": "string",
+                    "consentDetail": null
+                  }
+                }
+              },
+              "SPA": {
+                "value": {
+                  "data": {
+                    "active": "true",
+                    "customerReferenceDh": "string"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "description": "**Consumed by Cuscal Experience, CDR, B2B & SPA API layer to enforce token authorization**<br>\nAs an IAM service I need to ensure that the party requesting this particular service (any service) is authenticated as registered both in ACCC registry and as DR or DH within SaaS tables. Additionally I need to ensure the caller is authorised to perform the action they are requesting.\n\nStory: 1206",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/DomainAuthEnforceAccess_post_v1"
+            },
+            "description": "",
+            "x-examples": {}
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "required": true
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-cert-x5t"
+          }
+        ],
+        "tags": [
+          "IAM"
+        ]
+      }
+    },
+    "/oauth/token": {
+      "parameters": [],
+      "post": {
+        "summary": "Token",
+        "operationId": "post-token",
+        "responses": {
+          "200": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/postTokenResponse"
+            },
+            "examples": {
+              "client_creds-response": {
+                "access_token": "1q2w3e",
+                "token_type": "bearer",
+                "refresh_token": "4r5t6y",
+                "expires_in": "3600"
+              }
+            },
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "description": "Used by a client to request access and/or refresh tokens. \n\nThis initial instnace of the API assumes clients are configured with the authentication method of \"client_secret_post\" and therefore expects that client credentials (id + password) will be present in POST body. \n\nCurrentky allowing 3 grant types \nclient_credentials\nrefresh_token\nauthorization_code\nStory:\nOB-1231\nOB-1432\n\n",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/postTokenRequest"
+            },
+            "description": "",
+            "x-examples": {
+              "cdr-client-creds-request": {
+                "client_id": "gorilla-cdr",
+                "client_secret": "secret",
+                "scope": "common:customer:basic:read, common:customer:detail:read",
+                "grant_type": "client_credentials"
+              },
+              "b2b-refresh-token-request": {
+                "client_id": "unicorn-b2b",
+                "client_secret": "secret",
+                "scope": "cde:holder:customer",
+                "grant_type": "client_credentials"
+              }
+            }
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "required": true
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-cert-x5t"
+          }
+        ],
+        "tags": [
+          "IAM"
+        ]
+      }
+    },
+    "/sessions/{tenantId}": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true,
+          "default": "unicorn"
+        }
+      ],
+      "get": {
+        "summary": "get session as relying party",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/getSessionResponse"
+            },
+            "examples": {
+              "b2b-response": {
+                "token": "ge56GTw",
+                "tokenType": "bearer"
+              }
+            },
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "operationId": "get-sessons-tenantId",
+        "parameters": [
+          {
+            "type": "string",
+            "in": "query",
+            "name": "purpose",
+            "required": true,
+            "default": "b2b-read"
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "required": true
+          }
+        ],
+        "description": "Obtains the session as provided to Cuscal as relying party by a tenanted client\n\nStory:\n",
+        "tags": [
+          "IAM"
+        ]
+      }
+    },
+    "/{tenantId}/metrics/sessions": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "summary": "get metrics data for ACCC reporting",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseDomainAuthMetricsSessions_v1"
+            },
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "operationId": "get-sessions-metrics-sessions",
+        "description": "Get session metrics from Pirean. The metrics represent the number of sessions started (i.e. number of access rtokens issued) for today and for last seven days)",
+        "parameters": [
+          {
+            "type": "string",
+            "in": "query",
+            "name": "dateTimeFrom",
+            "description": "Fetch metrics starting from this date (for daily) or month (for monthly)",
+            "default": "ALL",
+            "required": true
+          },
+          {
+            "type": "string",
+            "in": "query",
+            "name": "dateTimeTo",
+            "required": true,
+            "description": "Fetch metrics ending on this date (for daily) or month (for monthly)"
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/{tenantId}/metrics/infosec": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "summary": "get metrics data for ACCC reporting",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseDomainAuthMetricsInfosec_v1"
+            },
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "operationId": "get-sessions-metrics-infosec",
+        "description": "Get Infosec API metrics from Pirean. The metrics is summary for the day for the infosec endpoints exposed to Data Recipients",
+        "parameters": [
+          {
+            "type": "string",
+            "in": "query",
+            "name": "date",
+            "description": "The date must be in YYYY-MM-DD format. If date is not passed it must default previous day date. If today’s date is passed respond with error",
+            "format": "date"
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/{tenantId}/consent/token": {
+      "post": {
+        "summary": "POST token",
+        "operationId": "post-auth-consent-token",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseDomainToken_v1"
+            },
+            "headers": {
+              "x-trace-id": {
+                "type": "string",
+                "description": "race identifier provided to Pirean - Pirean will return the value in the response. This is a correlation-id for this interaction."
+              }
+            }
+          }
+        },
+        "description": "**Consumed by Cuscal Experience API layer** <br>\nUsed by Cuscal to obtain a mfa-access token using a code issued by A:1. The token obtained through this interface is only scoped to support the completion of a OTP challenge thus its limited scope.\n",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/RequestDomainAuthConsentToken_post_v1"
+            },
+            "description": ""
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "required": true,
+            "description": "race identifier provided to Pirean - Pirean will return the value in the response. This is a correlation-id for this interaction."
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-cert-x5t",
+            "description": "Optional. Cuscal computed hash of the DR's certificate presented at mutual auth endpoints. Used to verify HOK."
+          }
+        ],
+        "tags": [
+          "Consent-Grant"
+        ]
+      },
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/{tenantId}/consent/grant": {
+      "post": {
+        "summary": "",
+        "operationId": "post-auth-consent-grant",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseDomainAuthConsentGrant_v1"
+            },
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "description": "**Consumed by Cuscal Experience API layer**<br>\nEndpoint to provide consent details to A:1 to fetch y_return_code<br>\nExp call via this endpoint to make a backchannel call to Pirean when consent grant is complete. This request allows Cuscal to provide Pirean sensitive details. It also receives information from Pirean on where . how to redirect back to IAM.",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/DomainAuthConsentGrant_post_v1"
+            }
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "required": true
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-cert-x5t"
+          }
+        ],
+        "tags": [
+          "Consent-Grant"
+        ]
+      },
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/{tenantId}/consent/token/revoke": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "summary": "Revoke Auth Token",
+        "operationId": "post-tenantId-consent-token-revoke",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "description": "**Consumed by Cuscal Experience API layer to revoke SPA access token** <br>\nRevoke authorization tokens at Pirean",
+        "parameters": [
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "description": "This is a correlation-id for this interaction.",
+            "required": true
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-cert-x5t",
+            "description": "Cuscal computed hash of the DR's certificate presented at mutual auth endpoints. Used to verify HOK."
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/DomainToken_v1"
+            },
+            "description": ""
+          }
+        ],
+        "tags": [
+          "IAM"
+        ]
+      }
+    },
+    "/token/signature": {
+      "post": {
+        "summary": "",
+        "operationId": "post-token-signature",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            },
+            "schema": {
+              "$ref": "#/definitions/DomainJwtPayload_v1"
+            }
+          }
+        },
+        "description": "**Consumed by Cuscal APIs layer to verify JWT signature** <br>",
+        "parameters": [
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "description": "This is a correlation-id for this interaction.",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/DomainJWTSignature_post_v1"
+            }
+          }
+        ],
+        "tags": [
+          "JWT-Signature-Verification"
+        ]
+      }
+    },
+    "/{tenantId}/otp": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "summary": "",
+        "operationId": "post-tenantId-otp",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "**Consumed by Cuscal APIs layer to issue & validate OTP** <br>",
+        "parameters": [
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "description": "This is a correlation-id for this interaction.",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/RequestDomainAuthOtp_post_v1"
+            },
+            "x-examples": {
+              "Generate & Send OTP": {
+                "mfaAccessToken": "string",
+                "otpMode": "generate_and_send",
+                "sendBy": "sms",
+                "sendTo": "string"
+              },
+              "Validate OTP": {
+                "mfaAccessToken": "string",
+                "otpMode": "validate",
+                "incomingOtp": "string"
+              }
+            }
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-cert-x5t",
+            "description": "Cuscal computed hash of the DR's certificate presented at mutual auth endpoints. Used to verify HOK."
+          }
+        ],
+        "tags": [
+          "OTP"
+        ]
+      }
+    },
+    "/{tenantId}/consent/customer/verify": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "summary": "",
+        "operationId": "post-tenantId-consent-customer-verify",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseDomainToken_v1"
+            },
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "description": "Used by Cuscal to obtain a mfa-access token where the customer must exist in A:1. ",
+        "parameters": [
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "description": "This is a correlation-id for this interaction.",
+            "required": true
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-cert-x5t",
+            "description": "Optional. Cuscal computed hash of the DR's certificate presented at mutual auth endpoints. Used to verify HOK."
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/RequestDomainAuthCustomerVerify_v1"
+            }
+          }
+        ],
+        "tags": [
+          "Consent-Management"
+        ]
+      }
+    },
+    "/{tenantId}/consent/token/elevate": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "summary": "Obtain full access token",
+        "operationId": "post-tenantId-consent-token-elevate",
+        "tags": [
+          "Consent-Grant",
+          "Consent-Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseDomainToken_v1"
+            },
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "description": "Obtain SPA access token once the otp challenge has completed. This call is used to change the scopes for a previously granted access token. The expiry and other claims will be carried over. Use this call once the OTP process has completed.",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/RequestDomainAuthTokenElevate_v1"
+            },
+            "description": ""
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "description": "This is a correlation-id for this interaction.",
+            "required": true
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "description": "Optional. Cuscal computed hash of the DR's certificate presented at mutual auth endpoints. Used to verify HOK.",
+            "name": "x-cert-x5t"
+          }
+        ]
+      }
+    },
+    "/{tenantId}/clients/revoke": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "summary": "Remove Software Product",
+        "operationId": "post-tenantId-clients-revoke",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "x-nullable": true
+            },
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ResponseDomainError_v1"
+            }
+          }
+        },
+        "description": "**Endpoint will be used by Domain Consent Inactivate Consents & tokens associated with a Software Product**",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/RequestDomainAuthClientsRevoke_v1"
+            }
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "required": true
+          }
+        ],
+        "tags": [
+          "Remove-Software-Product"
+        ]
+      }
+    },
+    "/{tenantId}/grants/revoke": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "summary": "Revoke Consent",
+        "operationId": "post-tenantId-grants-revoke",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "description": "**This endpoint will be used by Doman Consent API to inactivate Consents & Tokens on Pirean**",
+        "parameters": [
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/RequestDomainAuthGrantsRevoke_v1"
+            }
+          }
+        ],
+        "tags": [
+          "Consent-Management"
+        ]
+      }
+    },
+    "/{tenantId}/recipients/{recipientBrandId}/clients": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "recipientBrandId",
+          "in": "path",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "summary": "Data Recipient creation",
+        "operationId": "post-recipients-recipientBrandId-clients",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-external-trace-id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "description": "**Consumed by Pirean**<br>\nEndpoint used by Pirean to onboard a Data recipeint to Cassie during DCRS.<br>\nNote: the recipient is not a tenant, thus referred to as brand.<br>\nThe tenant is the Cuscal Hosted Tenant with which the recipient is registering\nSigned JWS has to be passed in Authorization header as Bearer token",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/DomainRecipentClient_post_v1"
+            },
+            "description": ""
+          },
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-external-trace-id",
+            "required": true,
+            "description": "race identifier provided by Pirean. Cuscal will supply the same header in the response."
+          }
+        ],
+        "tags": [
+          "Dynamic-Client-Registration"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/{tenantId}/arrangements/{arrangementId}/revoke": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "arrangementId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "summary": "",
+        "operationId": "post-tenantId-arrangements-arrangementId-revoke",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-external-trace-id": {
+                "type": "string"
+              }
+            },
+            "examples": {}
+          }
+        },
+        "parameters": [
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-external-trace-id",
+            "required": true,
+            "description": "Trace identifier provided by Pirean. Cuscal will supply the same header in the response."
+          }
+        ],
+        "tags": [
+          "Revoke CDR-Arrangement"
+        ],
+        "description": "**Consumed by Pirean** <br>\nPirean advising Cuscal to revoke consents associated with an arrangement <br>\nSigned JWS has to be passed in Authorization header as Bearer token <br>\nEndoint will be called by Pirean via VPN to revoke consent related to a cdr_arrangement_id <br>\n",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/{tenantId}/customers/{customerReferenceDh}": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "tenantId",
+          "in": "path",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "customerReferenceDh",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "summary": "Your GET endpoint",
+        "tags": [
+          "User-Info"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseDomainAuthUserInfo_v1"
+            },
+            "headers": {
+              "x-external-trace-id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "operationId": "get-tenantId-customers-onlineBankingId",
+        "description": "**Consumed by Pirean**<br>\nUsed to obtain real-time data about a customer who has an active consent, used to populate a response in the /userInfo endpoint exposed by Pirean\n\nPirean provides the tokenised customer identity recorded at the time of consent, Cuscal obtains the latest details from the client through existing B2B interface",
+        "parameters": [
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-external-trace-id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/sessions/caches/{key}": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "key",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "delete": {
+        "summary": "Delete a Cache record",
+        "operationId": "delete-sessions-caches-key",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-trace-id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "description": "This end point will be used to delete a cache record using cache Key. This will be used for Tesing only. This endpoint must not be exposed to any edge API. This call must be audited\nThis end-point must not be deployed in Production environment.",
+        "parameters": [
+          {
+            "type": "string",
+            "in": "header",
+            "name": "x-trace-id",
+            "required": true
+          }
+        ],
+        "tags": [
+          "Delete-Cache"
+        ],
+        "x-internal": false
+      }
+    }
+  },
+  "definitions": {
+    "postTokenRequest": {
+      "title": "postTokenRequest",
+      "type": "object",
+      "properties": {
+        "client_id": {
+          "type": "string",
+          "description": "as granted to the data recipient when onboarded "
+        },
+        "client_secret": {
+          "type": "string",
+          "description": "allows IAM to validate clienId"
+        },
+        "scope": {
+          "type": "string",
+          "description": "must match one of the scopes defined at the time the caller was accredited. If passed and valid, the access toekn generated will bind to provided scope(s)"
+        },
+        "grant_type": {
+          "type": "string",
+          "enum": [
+            "client_credentials",
+            "refresh_token",
+            "authorization_code"
+          ],
+          "default": "client_credentials",
+          "description": "Type of grant flow. Assume client credentials"
+        },
+        "refresh_token": {
+          "type": "string",
+          "description": "Where grant_type of \"refresh_token\" is  provided, the caller musy include a valid refresh_token, it will be exchanged for a new set of tokens"
+        }
+      },
+      "required": [
+        "client_id",
+        "client_secret",
+        "grant_type"
+      ],
+      "x-examples": {
+        "cdr-client-creds-request": {
+          "client_id": "gorilla-cdr",
+          "client_secret": "secret",
+          "scope": "common:customer:basic:read, common:customer:detail:read",
+          "grant_type": "client_credentials"
+        },
+        "b2b-refresh-token-request": {
+          "client_id": "unicorn-b2b",
+          "client_secret": "secret",
+          "scope": "cde:holder:customer",
+          "grant_type": "client_credentials"
+        }
+      }
+    },
+    "postTokenResponse": {
+      "title": "postTokenResponse",
+      "type": "object",
+      "properties": {
+        "access_token": {
+          "type": "string"
+        },
+        "refresh_token": {
+          "type": "string"
+        },
+        "token_type": {
+          "type": "string",
+          "description": "The type of access token granted"
+        },
+        "expires_in": {
+          "type": "string",
+          "description": "Number of seconds the access token will expire from creation"
+        },
+        "scope": {
+          "type": "string"
+        }
+      },
+      "x-examples": {
+        "client_creds-response": {
+          "access_token": "1q2w3e",
+          "token_type": "bearer",
+          "refresh_token": "4r5t6y",
+          "expires_in": 3600
+        }
+      }
+    },
+    "getSessionResponse": {
+      "title": "getSessionResponse",
+      "type": "object",
+      "x-examples": {
+        "b2b-response": {
+          "token": "ge56GTw"
+        }
+      },
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "bearer token to be used for accessing external partner API"
+        },
+        "tokenType": {
+          "type": "string"
+        },
+        "headers": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "token",
+        "tokenType"
+      ]
+    },
+    "DomainAuthConsentGrant_post_v1": {
+      "title": "DomainAuthConsentGrant_post",
+      "type": "object",
+      "properties": {
+        "sessionToken": {
+          "type": "string",
+          "description": "Issued by A:1 and used by the SPA to secure interactions with experience APIs. Also called a session token. A:1 referes to it as x-access-token"
+        },
+        "consentHash": {
+          "type": "string",
+          "description": "Identifier for consent issued by Cassie"
+        },
+        "customerReferenceDh": {
+          "type": "string",
+          "description": "the tokenized identifier of the customer's online banking id, who created and owns the consent - aka delegatedBy"
+        },
+        "customerReferenceDhDr": {
+          "type": "string",
+          "description": "the tokenized identifier of the customer's online banking id, who created and owns the consent - aka delegatedBy. This one is provided to DR to comply with ACCC Id permanence "
+        },
+        "loa": {
+          "type": "string",
+          "description": "Level of assurence",
+          "enum": [
+            "urn:cds.au:cdr:2"
+          ],
+          "default": "urn:cds.au:cdr:2"
+        },
+        "cdrArrangementId": {
+          "type": "string",
+          "description": "Identifier to link together individual re-authorised consents over time"
+        },
+        "shareUserInfo": {
+          "type": "boolean",
+          "description": "This value specifies if the user info can be shared to DR or not. The value must always be passed in lower cases.",
+          "default": false
+        },
+        "userInfo": {
+          "$ref": "#/definitions/DomainAuthUserInfo_v1"
+        }
+      },
+      "required": [
+        "sessionToken",
+        "consentHash",
+        "customerReferenceDh",
+        "customerReferenceDhDr",
+        "loa",
+        "shareUserInfo"
+      ]
+    },
+    "DomainAuthConsentGrant_v1": {
+      "title": "DomainAuthConsentGrant",
+      "type": "object",
+      "properties": {
+        "yCode": {
+          "type": "string",
+          "description": "a random code issued by A:1 featured in the redirect back to Pirean after the consent grant flow has completed."
+        }
+      },
+      "required": [
+        "yCode"
+      ]
+    },
+    "DomainAuthEnforceAccess_post_v1": {
+      "title": "DomainAuthEnforceAccess_post_v1",
+      "type": "object",
+      "x-examples": {
+        "cdr-request": {
+          "purpose": "CDR",
+          "token": "$RWgjyw",
+          "scope": "common:customer:basic:read",
+          "accountPpId": [
+            "string"
+          ]
+        },
+        "b2b-request": {
+          "purpose": "B2B",
+          "token": "&hvt5",
+          "scope": "cde:holder:customer"
+        },
+        "exp-request": {
+          "purpose": "SPA",
+          "token": "&hvt5",
+          "scope": "customerspa:holder:authorize"
+        }
+      },
+      "description": "Model containing parameters for /oath/enforce/access post request end point",
+      "properties": {
+        "purpose": {
+          "type": "string",
+          "description": "Purpose must be either 'CDR', 'B2B' or 'SPA'",
+          "enum": [
+            "CDR",
+            "B2B",
+            "SPA",
+            "CDR-REGISTER"
+          ]
+        },
+        "token": {
+          "type": "string",
+          "description": "Bearer Token as extracted from call header"
+        },
+        "apiScope": {
+          "type": "string",
+          "description": "the authorization scope assigned to the calling API endpoint, this method ensures that the apiScope is the set of scopes bound to the provided token."
+        },
+        "accountDhDr": {
+          "type": "array",
+          "description": "List of account PPIDs supplied by Data Recipient",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "purpose",
+        "token",
+        "apiScope"
+      ]
+    },
+    "DomainAuthEnforceAccess_v1": {
+      "title": "DomainEnforceAccess_v1",
+      "type": "object",
+      "description": "Model for Domain Auth POST /oauth/enforce/access response\n> ***consentDetail*** is conditional, mandatory if there is consent associated with the token being introspected <br>\n",
+      "x-conditional": [
+        "consentDetail",
+        "customerReferenceDH"
+      ],
+      "properties": {
+        "active": {
+          "type": "string",
+          "description": "Status of access token",
+          "enum": [
+            "true",
+            "false"
+          ]
+        },
+        "sourceSystemType": {
+          "type": "string",
+          "description": ""
+        },
+        "softwareProductId": {
+          "type": "string",
+          "description": "ACCC DR softwareProductId"
+        },
+        "recipientBrandId": {
+          "type": "string",
+          "description": "Recipients brand Id"
+        },
+        "scope": {
+          "type": "string",
+          "description": "The list of scopes obtained from Pirean introspect call"
+        },
+        "customerReferenceDH": {
+          "type": "string",
+          "description": "Tokenised value of the CustomerId. This is a conditional field and only applicable for Consumer Dashboard token introspect"
+        },
+        "consentDetail": {
+          "$ref": "#/definitions/DomainAuthGrantEnforceResponse_v1"
+        }
+      },
+      "required": [
+        "active"
+      ]
+    },
+    "DomainAuthGrantEnforceResponse_v1": {
+      "title": "DomainAuthGrantEnforceResponse",
+      "type": "object",
+      "description": "Object returned as a response to enforce consent call",
+      "properties": {
+        "isValid": {
+          "type": "boolean",
+          "description": "is the request authorised?"
+        },
+        "customerReference": {
+          "type": "string",
+          "description": "Customer of the Data Holder that has authorised the consent"
+        },
+        "customerReferenceDh": {
+          "type": "string",
+          "description": "Tokenised value of the CustomerId"
+        },
+        "customerReferenceDhDr": {
+          "type": "string",
+          "description": "CustomerReference encrypted with use of DR & DH based seed"
+        },
+        "onBehalfOfReference": {
+          "type": "string",
+          "description": "Entity whose data is being shared"
+        },
+        "onBehalfOfReferenceDh": {
+          "type": "string",
+          "description": "tokenised value of Entity whose data is being shared,"
+        },
+        "keySetDh": {
+          "type": "string",
+          "description": "DH Keysets for encryption"
+        },
+        "keySetDhDr": {
+          "type": "string",
+          "description": "Encryption keys for DH & DR"
+        },
+        "accounts": {
+          "type": "array",
+          "description": "array (may be empty)",
+          "items": {
+            "type": "object",
+            "properties": {
+              "accountNumber": {
+                "type": "string",
+                "description": " clear value of the account Id included in this consent"
+              },
+              "accountDhDr": {
+                "type": "string",
+                "description": " tokenised value of this account Id"
+              },
+              "authValue": {
+                "type": "string",
+                "description": "as recorded in Cassie"
+              },
+              "accountState": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "accountNumber",
+              "accountDhDr",
+              "accountState"
+            ]
+          }
+        }
+      },
+      "required": [
+        "isValid",
+        "customerReference",
+        "customerReferenceDh",
+        "customerReferenceDhDr",
+        "onBehalfOfReference",
+        "onBehalfOfReferenceDh",
+        "keySetDh",
+        "keySetDhDr"
+      ]
+    },
+    "DomainAuthMetricsInfosec_v1": {
+      "title": "DomainAuthMetricsInfosec_v1",
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "The date for statistics "
+        },
+        "failedRequests": {
+          "type": "integer",
+          "description": "Number of failed requestes during the day"
+        },
+        "requestsMetSla": {
+          "type": "integer",
+          "description": "The requests that were responded within the SLA during the day"
+        },
+        "requestsFailedSla": {
+          "type": "integer",
+          "description": "The requests that were not responded within the SLA during the day"
+        },
+        "tph": {
+          "type": "array",
+          "description": "Request statistics per hour",
+          "items": {
+            "type": "object",
+            "properties": {
+              "hour": {
+                "type": "integer",
+                "description": "The hour of the day. 1 = 00:00 to 00:59, 2 = 01:00 to 01:59 .... 24 = 23:00 to 23:59 "
+              },
+              "count": {
+                "type": "integer",
+                "description": "Total number of requests received in the hour"
+              },
+              "averageResponseTime": {
+                "type": "number",
+                "description": "Average response time during the hour."
+              }
+            },
+            "required": [
+              "hour",
+              "count",
+              "averageResponseTime"
+            ]
+          }
+        }
+      },
+      "required": [
+        "date",
+        "failedRequests",
+        "requestsMetSla",
+        "requestsFailedSla",
+        "tph"
+      ]
+    },
+    "DomainAuthMetricsSessions_v1": {
+      "title": "DomainAuthMetricsSessions",
+      "type": "object",
+      "description": "General purpose metrics data model represented as array of objects consisting of date and number",
+      "x-tags": [
+        "Metrics"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "Date that the value relates to (daily dd/mm/yyyy)"
+        },
+        "value": {
+          "type": "number",
+          "description": "The count of invoked sessions"
+        }
+      },
+      "required": [
+        "date",
+        "value"
+      ]
+    },
+    "DomainAuthUserInfo_v1": {
+      "title": "DomainAuthUserInfo_v1",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "End-User's full name in displayable form including all name parts. "
+        },
+        "givenName": {
+          "type": "string",
+          "description": "Given name(s) or first name(s) of the End-User. If the End-User is known by only one name then it is recorded in the givenName"
+        },
+        "familyName": {
+          "type": "string",
+          "description": "Surname(s) or last name(s) of the End-User"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Time the End-User's information was last updated. Its value is a JSON number representing the number of seconds from 1970-01-01T00:00:00Z to the UTC updated_at time"
+        }
+      },
+      "required": [
+        "name",
+        "familyName"
+      ]
+    },
+    "DomainError_v1": {
+      "title": "DomainError_v1",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Must be one of the following: 0001 – Account not able to be found"
+        },
+        "title": {
+          "type": "string",
+          "description": "Must be one of the following: Invalid account"
+        },
+        "detail": {
+          "type": "string",
+          "description": "ID of the account not found"
+        },
+        "meta": {
+          "type": "object",
+          "description": "Optional additional data for specific error types"
+        }
+      },
+      "required": [
+        "code",
+        "title",
+        "detail"
+      ]
+    },
+    "DomainJWTSignature_post_v1": {
+      "title": "DomainJWTSignature_post_v1",
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "Bearer token. \nCan be either of the following:\n1\\. Sent with a SPA request in the HTTP Authentication header.\n2\\. Signed or Encrypted JWT"
+        },
+        "caller": {
+          "type": "string",
+          "description": "The sender of the JWT. If the JWT is from Piream then pass A:1, else the tenantId"
+        },
+        "purpose": {
+          "type": "string",
+          "description": "The purpose/feature name for which the JWT was sent. For example: DCRS, Consent Grant, Consent Managment"
+        }
+      },
+      "required": [
+        "token",
+        "caller",
+        "purpose"
+      ]
+    },
+    "DomainJwtPayload_v1": {
+      "title": "DomainJwtPayload_v1",
+      "type": "object",
+      "properties": {
+        "jwt": {
+          "type": "string",
+          "description": "The JWT supplied for signature verfication"
+        },
+        "payload": {
+          "type": "object",
+          "description": "This is a JSON node. Payload of the JWS."
+        }
+      },
+      "required": [
+        "jwt",
+        "payload"
+      ]
+    },
+    "DomainRecipentClient_post_v1": {
+      "title": "DomainRecipentClient_post",
+      "type": "object",
+      "description": "",
+      "properties": {
+        "recipientBrandName": {
+          "type": "string",
+          "description": "Data Recipient Brand name"
+        },
+        "softwareProductId": {
+          "type": "string",
+          "description": "Data Recipeint Software Product Id"
+        }
+      },
+      "required": [
+        "recipientBrandName",
+        "softwareProductId"
+      ]
+    },
+    "DomainToken_v1": {
+      "title": "DomainToken",
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "Bearer token. \nCan be either of the following:\n1\\. Sent with a SPA request in the HTTP Authentication header.\n2\\. Signed or Encrypted JWT"
+        }
+      },
+      "required": [
+        "token"
+      ],
+      "description": ""
+    },
+    "RequestDomainAuthClientsRevoke_v1": {
+      "title": "RequestDomainAuthClientsRevoke",
+      "type": "object",
+      "properties": {
+        "recipientBrandId": {
+          "type": "string"
+        },
+        "softwareProductType": {
+          "type": "string"
+        },
+        "softwareProductId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "recipientBrandId",
+        "softwareProductType",
+        "softwareProductId"
+      ]
+    },
+    "RequestDomainAuthConsentToken_post_v1": {
+      "title": "RequestDomainAuthConsentToken_post",
+      "type": "object",
+      "properties": {
+        "rCode": {
+          "type": "string",
+          "description": "Represents a unique session between A:1 and the Consent Grant SPA (authentication)"
+        }
+      },
+      "required": [
+        "rCode"
+      ]
+    },
+    "RequestDomainAuthCustomerVerify_v1": {
+      "title": "RequestDomainAuthCustomerVerify",
+      "type": "object",
+      "properties": {
+        "customerReferencePpId": {
+          "type": "string",
+          "description": "Customer Reference/ Delegated By tokenised DH keysets"
+        }
+      },
+      "required": [
+        "customerReferencePpId"
+      ]
+    },
+    "RequestDomainAuthGrantsRevoke_v1": {
+      "title": "RequestDomainAuthGrantsRevoke",
+      "type": "object",
+      "properties": {
+        "recipientBrandId": {
+          "type": "string",
+          "description": "Data Recipient Brand Id assigned by ACCC"
+        },
+        "consentHash": {
+          "type": "string"
+        },
+        "arrangementId": {
+          "type": "string",
+          "description": "CDR arrangement Id"
+        }
+      },
+      "required": [
+        "recipientBrandId",
+        "consentHash"
+      ]
+    },
+    "RequestDomainAuthOtp_post_v1": {
+      "title": "RequestDomainAuthOtp_post",
+      "type": "object",
+      "x-conditional": [
+        "sendBy",
+        "sendTo",
+        "incomingOtp"
+      ],
+      "properties": {
+        "mfaAccessToken": {
+          "type": "string",
+          "description": "MFA access token"
+        },
+        "otpMode": {
+          "type": "string",
+          "enum": [
+            "generate_and_send",
+            "validate"
+          ],
+          "description": "The OTP action that has to be performed. This is an enumerated field "
+        },
+        "sendBy": {
+          "type": "string",
+          "enum": [
+            "sms",
+            "email"
+          ],
+          "description": "The channel by which OTP has to be delivered. This is mandatory if otpMode = generate_and_send"
+        },
+        "sendTo": {
+          "type": "string",
+          "description": "The mobile number or email to which OTP has to be sent. This is mandatory if otpMode = generate_and_send. Follow email (RFC5322) & mobile standard (RFC3966) standards"
+        },
+        "incomingOtp": {
+          "type": "string",
+          "description": "The OTP value entered by consumer on the dashboard. This is mandatory if otpMode = validate"
+        }
+      },
+      "required": [
+        "mfaAccessToken",
+        "otpMode"
+      ]
+    },
+    "RequestDomainAuthTokenElevate_v1": {
+      "title": "RequestDomainAuthTokenElevate",
+      "type": "object",
+      "properties": {
+        "mfaAccessToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mfaAccessToken"
+      ]
+    },
+    "ResponseDomainAuthConsentGrant_v1": {
+      "title": "ResponseDomainAuthConsentGrant",
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/DomainAuthConsentGrant_v1"
+        }
+      }
+    },
+    "ResponseDomainAuthEnforceAccess_v1": {
+      "title": "ResponseAuthDomainEnforceAccess_v1",
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/DomainAuthEnforceAccess_v1"
+        }
+      }
+    },
+    "ResponseDomainAuthMetricsInfosec_v1": {
+      "title": "ResponseDomainAuthMetricsInfosec_v1",
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/DomainAuthMetricsInfosec_v1"
+        }
+      },
+      "required": [
+        "data"
+      ]
+    },
+    "ResponseDomainAuthMetricsSessions_v1": {
+      "title": "ResponseDomainMetricsSessionsData_v1",
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "required": [
+            "sessionMetrics"
+          ],
+          "properties": {
+            "sessionMetrics": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/DomainAuthMetricsSessions_v1"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "data"
+      ]
+    },
+    "ResponseDomainAuthUserInfo_v1": {
+      "title": "ResponseDomainAuthUserInfo",
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/DomainAuthUserInfo_v1"
+        }
+      }
+    },
+    "ResponseDomainError_v1": {
+      "title": "ResponseDomainError",
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/DomainError_v1"
+        }
+      }
+    },
+    "ResponseDomainToken_v1": {
+      "title": "ResponseDomainToken",
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/DomainToken_v1"
+        }
+      },
+      "required": [
+        "data"
+      ]
+    }
+  },
+  "host": "internalapi.dev.cds.cuscal.com.au",
+  "basePath": "/domain/auth/v1",
+  "securityDefinitions": {
+    "Bearer": {
+      "type": "oauth2",
+      "flow": "accessCode",
+      "scopes": {},
+      "authorizationUrl": "https://authurl.com",
+      "tokenUrl": "https://tokenurl.com"
+    }
+  },
+  "tags": [
+    {
+      "name": "Consent-Grant"
+    },
+    {
+      "name": "Consent-Management"
+    },
+    {
+      "name": "Delete-Cache"
+    },
+    {
+      "name": "Dynamic-Client-Registration"
+    },
+    {
+      "name": "IAM"
+    },
+    {
+      "name": "JWT-Signature-Verification"
+    },
+    {
+      "name": "Metrics"
+    },
+    {
+      "name": "OTP"
+    },
+    {
+      "name": "Remove-Software-Product"
+    },
+    {
+      "name": "Revoke CDR-Arrangement"
+    },
+    {
+      "name": "User-Info"
+    }
+  ],
+  "parameters": {}
+}
