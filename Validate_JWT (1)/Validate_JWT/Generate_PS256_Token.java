@@ -1,0 +1,108 @@
+//package au.com.cuscal.domain.test1;
+
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+
+import java.io.IOException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
+import java.security.Security;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.text.ParseException;
+import java.util.Base64;
+import java.util.Date;
+import java.util.UUID;
+
+public class Generate_PS256_Token {
+
+
+    public static void main(String s[]) throws NoSuchAlgorithmException, InvalidKeySpecException, JOSEException, ParseException, IOException {
+
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        String privatekeystr = "-----BEGIN PRIVATE KEY-----MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCS6V7URmgEHqX7HIGPRWmsK3cTjgPUm9tc9KbQa4pJqNwmnC1De4sKcIu/C/l973FaJ6/NeZ/cMiLRL5ZjtwZ8u5IAck8W5rT22qU9BAiK/a3KFqwFFzXaDWmnRWMs5WOpJblmUeK9rbvg2EiYNrV5hfSAiN8Cwk6aAvp1zyyG2iqlCx80bhKMbb1Fe2J/hzidKQflytfBBnGwEPiM9VKtcrh6AvFXtLH2whN3c5Gey3G30mZIczKZbSIeNjyQX1v+eP34OKmMMHCmUrPat9HVjfvsimfE4oXB78IBEf2CmWGmC2WiwYg0sNYiPjA/VI4zg14ky6bLiIeMXUzmXDrzAgMBAAECggEAU3oltyrWedjMaZZ2C+neNMVx4PumM43oJLajfvRMXLSFe67sjVbK18DBt2nfd26yEw9P9spwSpd2bzTCGKDsH74ZJQXO6O1o0IfGspfzHr8snBMr5aydnexXJ4Pm6aDicz+LTJek5jCs/AMJpOwZTBcQqmSbi57LOPoORRjWbTz1j7My7m0nHK5NbX8befJ8yAw8vjgPRFsyQ4wYaEykfTwOWFwoQ68ow68f7uo8lxRZ/tPefTrpy1OjRx5GHJ2AXjbM3PMBjjPzWpGJWTKXU3IlN6NSNWmo1kmJK9GzfbyJ8c6mHijWQ/WM/HZSN8NF8DHerMUMpq0ujUrGkxefYQKBgQDgk0synIFKo6oW5ASexpQgsIkZzsuewI4s48LXiXEarL4NCAHTwhK7vpUGGaynP3qQm2k22oZsXsOesm/Iw7TGmNq2JeEWBPujqY//8a7OQUuOVkGRK9ZYU2BWWItjx4HHri2lCJabDUXdemcpgS+xDmoHISXeCj7dcnZZMFT90QKBgQCneARApNIouWHb9kldjZXc+MBROx30jKiXoX7AsTUkhzHpmE5BzrHxI+df8VSU/t3uGkKVK+f7jZfjy+XRtMJq6hbIirCgENnlLNk5aIYCeNq8OB7glp1p4T0BdxsUu8XGu5DXP4jPBj4i2CwrXNo+OTxaSfuN+tXgHitCEVIJgwKBgQDYxdTkOaWjgm+AQQEksdHx6/Wq764kwwF52zAMFSMT+IJK2dvJp5+lkcUPamD535BTXXAl/rGaka6J1PuJ8z7gJFOZVt75/j1YMShKieOOPADOl/waQRJZl8F6F2YVHlLrh/mPP8cAS8OQkcJakdSTN7KoxxpiRcmAwCf0125ywQKBgEKtIRxPwzDdpl26cDlkPs+s5n0xCVstiY5diSbVJzB092Vm83l1/xjgT6W+Ywuzcc7z+6CCy6k3Fctnigf1bRa+PvX3ah1AuFBri800lW50ibo4qeqHbQMT34Mu1cRqgnL+iMt6i1DJzoF3Chb1sBroFORp4lMEFJVXzadPWBdbAoGBAKw2V3jlp/2qxCWigWVN8+1izEnJJ61NFKaIBFxGEudcy5TSUP1rb0fVqQxEFu+5ry3om7zsYoKCe0dcesXUJdwsAHdaVjVPKQaOv351pA+IbqTMrkMVCUlNkKHQlqVa90LaCZ7CjLHKC62nTFVPYBUNNwjKYLza9MMPGLmpTbak-----END PRIVATE KEY-----";
+
+        String privateKeyPEM = privatekeystr
+            .replace("-----BEGIN PRIVATE KEY-----", "")
+            .replaceAll(System.lineSeparator(), "")
+            .replace("-----END PRIVATE KEY-----", "");
+
+        Base64.Decoder decoder = Base64.getDecoder();
+        byte[] encoded = decoder.decode(privateKeyPEM);
+
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+        RSAPrivateKey senderPrivateKey = (RSAPrivateKey) keyFactory.generatePrivate(keySpec);
+
+
+        Provider bc = BouncyCastleProviderSingleton.getInstance();
+        Security.addProvider(bc);
+
+
+        JWSSigner signer = new RSASSASigner(senderPrivateKey);
+
+        signer.getJCAContext().setProvider(BouncyCastleProviderSingleton.getInstance());
+
+       /* AdditionalClaims additionalClaims = new AdditionalClaims();
+
+        additionalClaims.setDuration("100");
+        additionalClaims.setScope("openid profile bank:accounts.basic:read bank:accounts.detail:read");
+        additionalClaims.setCdr_arrangement_id("CDR");
+        SignedJWT signedJWT = new SignedJWT(
+            new JWSHeader.Builder(JWSAlgorithm.RS256).keyID("jwt-rsa").build(),
+            new JWTClaimsSet.Builder()
+                .audience("consent.ui.cds.cuscal.com.au")
+                .subject("cuscal test")
+                .notBeforeTime(new Date(new Date().getTime() / 1000 * 1000))
+                .issueTime(new Date(new Date().getTime() / 1000 * 1000))
+                .jwtID(UUID.randomUUID().toString())
+                .expirationTime(new Date(new Date().getTime() + 3600 * 1000))
+                .issuer("A:1")
+                .claim("data_holder_brand_id", "acccunicornbank")
+                .claim("r_code", "Rlhswtacrga779hht4eqw1m7vihcq8ov")
+                .claim("userId", "acccunicornbank")
+                .claim("typ", "RS256")
+                .claim("loa", "1.0")
+                .claim("sessionId", "String")
+                .claim("sp_id", "af9f578f-3d96-ea11-a831-000d3a8842e1")
+                .claim("ss_type", "String")
+
+                .claim("params", additionalClaims)
+                .build());
+
+        signedJWT.sign(signer);
+
+        String s1 = signedJWT.serialize();
+        System.out.println("signedJWT.serialize()" + s1);*/
+
+
+        SignedJWT signedJWT = new SignedJWT(
+            new JWSHeader.Builder(JWSAlgorithm.RS256).keyID("jwt-rsa").build(),
+            new JWTClaimsSet.Builder()
+                .audience("consent.ui.test.cds.whitford.com.au")
+                .subject("")
+                .notBeforeTime(new Date(new Date().getTime() / 1000 * 1000))
+                .issueTime(new Date(new Date().getTime() / 1000 * 1000))
+                .jwtID(UUID.randomUUID().toString())
+                .expirationTime(new Date(new Date().getTime() + 3600 * 1000))
+                .issuer("whitford")
+                .claim("typ", "RS256")
+                .build());
+
+        signedJWT.sign(signer);
+
+        String s1 = signedJWT.serialize();
+        System.out.println("signedJWT.serialize()" + s1);
+
+
+    }
+
+
+}
